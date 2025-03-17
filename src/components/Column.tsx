@@ -11,6 +11,9 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ColumnProps {
   column: ColumnType;
@@ -31,6 +34,35 @@ const Column: React.FC<ColumnProps> = ({
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(column.title);
+
+  const { setNodeRef: setDroppableNodeRef } = useDroppable({
+    id: column.id,
+    data: {
+      type: 'column',
+      columnId: column.id
+    }
+  });
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({
+    id: column.id,
+    data: {
+      type: 'column',
+      column
+    }
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const handleTitleSubmit = () => {
     if (title.trim() && title !== column.title) {
@@ -55,7 +87,12 @@ const Column: React.FC<ColumnProps> = ({
   };
 
   return (
-    <div className="column-container animate-fade-in">
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className="column-container animate-fade-in"
+      {...attributes}
+    >
       <div className="column-header">
         {isEditingTitle ? (
           <div className="flex items-center w-full">
@@ -91,7 +128,9 @@ const Column: React.FC<ColumnProps> = ({
           </div>
         ) : (
           <div className="flex items-center">
-            <GripVertical className="h-4 w-4 mr-2 text-muted-foreground opacity-50" />
+            <div {...listeners} className="cursor-grab">
+              <GripVertical className="h-4 w-4 mr-2 text-muted-foreground opacity-50" />
+            </div>
             <span
               className="cursor-pointer hover:text-primary"
               onClick={() => setIsEditingTitle(true)}
@@ -125,15 +164,24 @@ const Column: React.FC<ColumnProps> = ({
         </DropdownMenu>
       </div>
       
-      <div className="column-content">
-        {column.tasks.map((task) => (
-          <Task 
-            key={task.id} 
-            task={task}
-            onEdit={handleTaskEdit}
-            onDelete={handleTaskDelete}
-          />
-        ))}
+      <div 
+        ref={setDroppableNodeRef}
+        className="column-content"
+      >
+        <SortableContext 
+          items={column.tasks.map(task => task.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {column.tasks.map((task) => (
+            <Task 
+              key={task.id} 
+              task={task}
+              onEdit={handleTaskEdit}
+              onDelete={handleTaskDelete}
+              columnId={column.id}
+            />
+          ))}
+        </SortableContext>
       </div>
       
       <div className="p-2 border-t">
