@@ -78,8 +78,7 @@ const Column: React.FC<ColumnProps> = ({
   };
 
   const handleTaskEdit = (task: TaskType) => {
-    // For now, just a placeholder. In a real app, you would open a modal or form
-    console.log('Edit task:', task);
+    onEditTask(column.id, task.id, task);
   };
 
   const handleTaskDelete = (taskId: string) => {
