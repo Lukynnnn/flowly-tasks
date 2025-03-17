@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogIn, Mail, Lock, Github, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -14,46 +16,75 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login, isAuthenticated } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate authentication delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // This is where you would normally authenticate with a backend
-    // For now, we'll just simulate a successful login
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('user', JSON.stringify({ email }));
-    
-    setIsLoading(false);
-    toast({
-      title: "Login successful",
-      description: "Welcome back!",
-    });
-    navigate('/');
+    try {
+      const { error } = await login(email, password);
+      
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
+        navigate('/');
+      }
+    } catch (error) {
+      toast({
+        title: "Login failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleOAuthLogin = async (provider: string) => {
+  const handleOAuthLogin = async (provider: 'github') => {
     setIsLoading(true);
     
-    // Simulate authentication delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // This is where you would normally authenticate with OAuth
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('user', JSON.stringify({ 
-      email: `user@${provider.toLowerCase()}.com`,
-      provider 
-    }));
-    
-    setIsLoading(false);
-    toast({
-      title: "Login successful",
-      description: `Welcome back! You've logged in with ${provider}.`,
-    });
-    navigate('/');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({ 
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Login failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+      console.error("OAuth login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -124,7 +155,7 @@ const Login: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <Button 
               variant="outline" 
-              onClick={() => handleOAuthLogin('GitHub')}
+              onClick={() => handleOAuthLogin('github')}
               disabled={isLoading}
             >
               <Github className="mr-2 h-4 w-4" />
@@ -132,8 +163,8 @@ const Login: React.FC = () => {
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => handleOAuthLogin('Discord')}
               disabled={isLoading}
+              className="opacity-50 cursor-not-allowed"
             >
               <MessageSquare className="mr-2 h-4 w-4" />
               Discord

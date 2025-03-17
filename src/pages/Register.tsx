@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Mail, Lock, User, Github, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const Register: React.FC = () => {
   const [name, setName] = useState('');
@@ -15,46 +17,75 @@ const Register: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signUp, isAuthenticated } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate registration delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // This is where you would normally register with a backend
-    // For now, we'll just simulate a successful registration
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('user', JSON.stringify({ name, email }));
-    
-    setIsLoading(false);
-    toast({
-      title: "Registration successful",
-      description: "Your account has been created!",
-    });
-    navigate('/');
+    try {
+      const { error } = await signUp(email, password);
+      
+      if (error) {
+        toast({
+          title: "Registration failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created! Check your email to confirm your account.",
+        });
+        navigate('/');
+      }
+    } catch (error) {
+      toast({
+        title: "Registration failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+      console.error("Registration error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleOAuthRegister = async (provider: string) => {
+  const handleOAuthRegister = async (provider: 'github') => {
     setIsLoading(true);
     
-    // Simulate authentication delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // This is where you would normally authenticate with OAuth
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('user', JSON.stringify({ 
-      email: `user@${provider.toLowerCase()}.com`,
-      provider 
-    }));
-    
-    setIsLoading(false);
-    toast({
-      title: "Registration successful",
-      description: `Welcome! You've registered with ${provider}.`,
-    });
-    navigate('/');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({ 
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Registration failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Registration failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+      console.error("OAuth registration error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -78,7 +109,6 @@ const Register: React.FC = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="pl-10"
-                  required
                 />
               </div>
             </div>
@@ -131,7 +161,7 @@ const Register: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <Button 
               variant="outline" 
-              onClick={() => handleOAuthRegister('GitHub')}
+              onClick={() => handleOAuthRegister('github')}
               disabled={isLoading}
             >
               <Github className="mr-2 h-4 w-4" />
@@ -139,8 +169,8 @@ const Register: React.FC = () => {
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => handleOAuthRegister('Discord')}
               disabled={isLoading}
+              className="opacity-50 cursor-not-allowed"
             >
               <MessageSquare className="mr-2 h-4 w-4" />
               Discord

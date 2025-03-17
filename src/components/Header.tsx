@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface HeaderProps {
   onCreateBoard?: () => void;
@@ -21,11 +22,25 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onCreateBoard }) => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Error",
+        description: "There was a problem logging out.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -42,7 +57,7 @@ const Header: React.FC<HeaderProps> = ({ onCreateBoard }) => {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {user ? (
+        {isAuthenticated ? (
           <>
             <Button variant="outline" size="sm" className="h-9" onClick={onCreateBoard}>
               <PlusCircle className="mr-1 h-4 w-4" />
@@ -52,7 +67,7 @@ const Header: React.FC<HeaderProps> = ({ onCreateBoard }) => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-9 relative">
                   <User className="h-4 w-4 mr-1" />
-                  <span className="hidden md:inline">{user.email?.split('@')[0]}</span>
+                  <span className="hidden md:inline">{user?.email?.split('@')[0]}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end">
