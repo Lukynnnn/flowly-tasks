@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogIn, Mail, Lock, Github, Discord } from 'lucide-react';
+import { LogIn, Mail, Lock, Github, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Login: React.FC = () => {
@@ -135,7 +135,7 @@ const Login: React.FC = () => {
               onClick={() => handleOAuthLogin('Discord')}
               disabled={isLoading}
             >
-              <Discord className="mr-2 h-4 w-4" />
+              <MessageSquare className="mr-2 h-4 w-4" />
               Discord
             </Button>
           </div>
