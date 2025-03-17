@@ -7,13 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { User, UserCircle, Mail, Key } from "lucide-react";
+import { User, UserCircle, Mail, Key, ArrowLeft } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Initialize display name from user metadata if available
@@ -29,15 +32,19 @@ const Profile = () => {
     try {
       setLoading(true);
       
-      // This is just a placeholder for now, we would need to implement
-      // the actual update profile functionality with Supabase
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Update user metadata with Supabase
+      const { error } = await supabase.auth.updateUser({
+        data: { name: displayName }
+      });
+      
+      if (error) throw error;
       
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
     } catch (error) {
+      console.error('Update error:', error);
       toast({
         title: "Update failed",
         description: "There was an error updating your profile.",
@@ -50,7 +57,17 @@ const Profile = () => {
 
   return (
     <div className="container max-w-3xl py-10 animate-fade-in">
-      <h1 className="text-3xl font-bold mb-8">Your Profile</h1>
+      <div className="flex items-center gap-2 mb-8">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => navigate('/')}
+          className="mr-2"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-3xl font-bold">Your Profile</h1>
+      </div>
       
       <div className="grid gap-8">
         <Card>
